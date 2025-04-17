@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.*;
-import java.nio.file.Files;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -83,18 +83,15 @@ public class SweBenchLiteTesterApplication {
             result.put("exitCode", exitCode);
 
             // Read harness output JSON file
-            String reportPath = String.format("logs/run_evaluation/%s/report.json", instanceId);
-            File evaluationReport = new File(dir, reportPath);
-            if (evaluationReport.exists()) {
+            Optional<File> reportFile = findReportJson(dir, instanceId);
+            reportFile.ifPresent(file -> {
                 try {
-                    String reportContent = Files.readString(evaluationReport.toPath());
-                    result.put("evaluationReport", reportContent);
-                } catch (Exception e) {
-                    result.put("evaluationReport", "Failed to read report.json: " + e.getMessage());
+                    String content = Files.readString(file.toPath());
+                    result.put("harnessOutput", content);
+                } catch (IOException e) {
+                    result.put("harnessOutput", "Failed to read output JSON: " + e.getMessage());
                 }
-            } else {
-                result.put("evaluationReport", "report.json not found.");
-            }
+            });
         } catch (Exception e) {
             result.put("error", e.getMessage());
             log.error(e.getMessage(), e);
@@ -126,6 +123,8 @@ public class SweBenchLiteTesterApplication {
         command.add(new File(dir, "task_file.json").getAbsolutePath());
         command.add("--run_id");
         command.add(instanceId);
+        command.add("--report_dir");
+        command.add(new File(dir, "logs").getAbsolutePath());
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(dir);
@@ -183,5 +182,23 @@ public class SweBenchLiteTesterApplication {
             return reader.readLine();
         }
     }
+
+    private Optional<File> findReportJson(File baseDir, String runId) {
+        File logsRoot = new File(baseDir, "logs/run_evaluation");
+        if (!logsRoot.exists()) {
+            return Optional.empty();
+        }
+
+        try {
+            return Files.walk(logsRoot.toPath())
+                    .map(Path::toFile)
+                    .filter(file -> file.isFile() && file.getName().equals("report.json"))
+                    .filter(file -> file.getAbsolutePath().contains(runId)) // optional absichern
+                    .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
 
 }

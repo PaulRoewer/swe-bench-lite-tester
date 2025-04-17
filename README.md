@@ -1,16 +1,18 @@
-# SWE-Bench Lite REST Service
+# SWE-Bench-Lite API - Test Service
 
-This project provides a REST API wrapper for executing individual [SWE-Bench Lite](https://github.com/princeton-nlp/SWE-bench) test cases in a Dockerized environment. It acts as a bridge between AI-driven agents and the SWE-Bench evaluation harness by exposing a simple HTTP endpoint.
+A lightweight REST API to evaluate [SWE-bench Lite](https://huggingface.co/datasets/princeton-nlp/SWE-bench_Lite) test cases in combination with automated code modifications (e.g. via agents like OpenManus).  
+Built specifically for running `run_evaluation.py` inside Docker.
 
-## Overview
+---
 
-The REST API allows you to send a test case with repository path and test lists, and the server handles the patch diff creation, test execution via SWE-Bench's `run_evaluation.py`, and report generation.
-
-## REST API
+## 🌐 REST API Overview
 
 ### `POST /test`
 
-**Request Body (JSON):**
+Run a bug-fixing evaluation job for a given SWE-bench Lite instance.
+
+#### Request Example
+
 ```json
 {
   "instance_id": "astropy__astropy-12907",
@@ -24,50 +26,43 @@ The REST API allows you to send a test case with repository path and test lists,
 }
 ```
 
-**Fields:**
-- `instance_id`: Unique identifier for this test instance.
-- `repoDir`: Mounted directory inside the Docker container pointing to the cloned repo.
-- `FAIL_TO_PASS`: List of test identifiers expected to fail before the patch but pass after.
-- `PASS_TO_PASS`: List of test identifiers expected to pass both before and after the patch.
+#### Request Fields
 
-**Response (JSON):**
+- `instance_id`: Unique ID for this run – shown in the final report file.
+- `repoDir`: Path inside container to mounted code repo (e.g. `/repos/repo_1`).
+- `FAIL_TO_PASS`: Failing tests expected to pass after patching.
+- `PASS_TO_PASS`: Tests that should remain passing.
+
+---
+
+### Response
+
 ```json
 {
-  "output": "...",             // Log output of the SWE-Bench evaluation run
-  "exitCode": 0,               // Exit code of the run
-  "harnessOutput": "{...}"     // JSON report content as string
+  "exitCode": 0,
+  "harnessOutput": "{...}",  // stringified JSON
+  "error": null
 }
 ```
 
-## Usage
+- `exitCode`: Exit status of the Python evaluation process.
+- `harnessOutput`: The raw JSON result of the test run.
+- `error`: If anything failed internally.
 
-### Start Server
+---
 
-Use the provided Dockerfile to build the service:
+## 🐳 Run via DockerHub
+
 ```bash
-docker build -t swe-bench-lite-tester .
+docker pull paulroewer/swe-bench-lite-tester:latest
+docker run -p 8082:8080 \
+  -v /path/to/your/repos:/repos \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  paulroewer/swe-bench-lite-tester
 ```
 
-Run the service:
-```bash
-docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -v /absolute/path/to/repos:/repos swe-bench-lite-tester
-```
+---
 
-### Example Client Call
-```python
-import requests
+## 📜 License
 
-test_payload = {
-    "instance_id": "astropy__astropy-12907",
-    "repoDir": "/repos/repo_1",
-    "FAIL_TO_PASS": ["astropy/..."],
-    "PASS_TO_PASS": ["astropy/..."]
-}
-
-response = requests.post("http://localhost:8080/test", json=test_payload)
-print(response.json())
-```
-
-## License
-
-MIT
+This project uses [SWE-bench Lite](https://github.com/SWE-bench/SWE-bench/tree/main/swebench/harness). MIT
