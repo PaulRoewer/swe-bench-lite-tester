@@ -126,8 +126,6 @@ public class SweBenchLiteTesterApplication {
         command.add(new File(dir, "task_file.json").getAbsolutePath());
         command.add("--run_id");
         command.add(instanceId);
-        command.add("--report_dir");
-        command.add(new File(dir, "log_output").getAbsolutePath());
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(dir);
