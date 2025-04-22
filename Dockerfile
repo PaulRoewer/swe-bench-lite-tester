@@ -45,7 +45,9 @@ ENV PATH=/opt/miniconda/bin:$PATH
 RUN git clone https://github.com/SWE-bench/SWE-bench.git /opt/swebench && \
     pip install -e /opt/swebench
 
-RUN git config --global core.autocrlf false
+# Configure Git to avoid "dubious ownership" errors
+RUN git config --global core.autocrlf false && \
+    git config --global --add safe.directory '*'
 
 # App directory
 WORKDIR /app
