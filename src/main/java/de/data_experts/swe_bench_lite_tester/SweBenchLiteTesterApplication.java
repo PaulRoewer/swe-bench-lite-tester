@@ -1,5 +1,6 @@
 package de.data_experts.swe_bench_lite_tester;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @SpringBootApplication
 @RestController
@@ -136,20 +136,22 @@ public class SweBenchLiteTesterApplication {
         String patchContent = Files.readString(patchFile.toPath());
         patchContent = patchContent.replace("\r", ""); // CRLF → LF!
 
-        String json = "[\n{" +
-                "\"instance_id\": \"" + instanceId + "\"," +
-                "\"model_name_or_path\": \"" + repoName + "\",\n" +
-                "\"model_patch\": " + JSONObject.quote(patchContent) + ",\n" +
-                "\"repo\": \"" + repoName + "\",\n" +
-                "\"commit\": \"" + commitHash + "\"," +
-                "\"FAIL_TO_PASS\": " + toJsonArray(fail) + "," +
-                "\"PASS_TO_PASS\": " + toJsonArray(pass) +
-                "}\n]";
-        Files.writeString(file.toPath(), json);
-    }
+        JSONArray failArray = new JSONArray(fail == null ? List.of() : fail);
+        JSONArray passArray = new JSONArray(pass == null ? List.of() : pass);
 
-    private String toJsonArray(List<String> list) {
-        return list.stream().map(s -> "\"" + s + "\"").collect(Collectors.joining(",", "[", "]"));
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("instance_id", instanceId);
+        jsonObject.put("model_name_or_path", repoName);
+        jsonObject.put("model_patch", patchContent);  // keine quote() nötig
+        jsonObject.put("repo", repoName);
+        jsonObject.put("commit", commitHash);
+        jsonObject.put("FAIL_TO_PASS", failArray);
+        jsonObject.put("PASS_TO_PASS", passArray);
+
+        JSONArray array = new JSONArray();
+        array.put(jsonObject);
+
+        Files.writeString(file.toPath(), array.toString(2));
     }
 
     private String extractRepoNameFromGit(File repoDir) throws Exception {
