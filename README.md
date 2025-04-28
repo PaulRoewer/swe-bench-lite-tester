@@ -63,6 +63,15 @@ docker run -p 8082:8080 \
 
 ---
 
+### 📌 Known Issues
+Test Case 13 contains a FAIL_TO_PASS result that incorrectly passes without patching.
+This behavior originates from SWE-bench Lite itself and is not a bug in this service.
+
+Test Cases 151–156 cannot be executed successfully because of outdated or broken third-party dependencies in the original repositories.
+Dependency resolution errors prevent successful runs for these cases.
+
+---
+
 ## 📜 License
 
 This project uses [SWE-bench Lite](https://github.com/SWE-bench/SWE-bench/tree/main/swebench/harness). MIT
