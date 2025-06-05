@@ -4,6 +4,11 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
+# Set proper install script for miniconda
+ENV MINICONDA_AMD64_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+ENV MINICONDA_ARM64_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh
+ARG TARGETPLATFORM
+
 # Install system dependencies and Java 21
 RUN apt-get update && apt-get install -y \
     docker.io \
@@ -35,8 +40,12 @@ RUN wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gp
     rm -rf /var/lib/apt/lists/*
 
 # Install Miniconda
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
-    bash miniconda.sh -b -p /opt/miniconda && \
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        wget $MINICONDA_ARM64_URL -O miniconda.sh; \
+    else \
+        wget $MINICONDA_AMD64_URL -O miniconda.sh; \
+    fi
+RUN bash miniconda.sh -b -p /opt/miniconda && \
     rm miniconda.sh
 
 ENV PATH=/opt/miniconda/bin:$PATH
